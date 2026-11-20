@@ -1,0 +1,49 @@
+@Metadata.layer: #CUSTOMER
+
+@UI.headerInfo: {
+  typeName: 'Finding',
+  typeNamePlural: 'Findings',
+  title: { type: #STANDARD, value: 'Title' },
+  description: { type: #STANDARD, value: 'RuleId' }
+}
+
+annotate view ZC_RR_Finding with
+{
+  @UI.hidden: true
+  AnalysisUUID;
+
+  @UI.hidden: true
+  FindingUUID;
+
+  @UI.lineItem: [ { position: 10, importance: #HIGH } ]
+  RuleId;
+
+  @UI.selectionField: [ { position: 10 } ]
+  @UI.lineItem: [ { position: 20, criticality: 'SeverityCriticality', importance: #HIGH } ]
+  Severity;
+
+  @UI.hidden: true
+  SeverityCriticality;
+
+  @UI.lineItem: [ { position: 30, importance: #HIGH } ]
+  Title;
+
+  @UI.lineItem: [ { position: 40 } ]
+  @UI.multiLineText: true
+  Description;
+
+  @UI.selectionField: [ { position: 20 } ]
+  @UI.lineItem: [ { position: 50 } ]
+  ObjectType;
+
+  @UI.selectionField: [ { position: 30 } ]
+  @UI.lineItem: [ { position: 60 } ]
+  ObjectName;
+
+  @UI.lineItem: [ { position: 70 } ]
+  @UI.multiLineText: true
+  SuggestedAction;
+
+  @UI.hidden: true
+  CreatedAt;
+}

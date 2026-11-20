@@ -1,0 +1,6 @@
+@EndUserText.label: 'RAPReady Fiori Service'
+define service ZUI_RR_ANALYSIS {
+  expose ZC_RR_Analysis as Analysis;
+  expose ZC_RR_Finding  as Finding;
+  expose ZC_RR_Object   as ScannedObject;
+}

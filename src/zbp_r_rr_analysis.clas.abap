@@ -1,0 +1,9 @@
+CLASS zbp_r_rr_analysis DEFINITION
+  PUBLIC
+  ABSTRACT
+  FINAL
+  FOR BEHAVIOR OF zr_rr_analysis.
+ENDCLASS.
+
+CLASS zbp_r_rr_analysis IMPLEMENTATION.
+ENDCLASS.

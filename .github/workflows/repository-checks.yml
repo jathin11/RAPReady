@@ -1,0 +1,26 @@
+name: Repository checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  repository-shape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check required project files
+        shell: bash
+        run: |
+          test -f .abapgit.xml
+          test -f LICENSE
+          test -f README.md
+          test -f src/package.devc.xml
+      - name: Reject accidental secrets
+        shell: bash
+        run: |
+          ! grep -RIE --exclude-dir=.git --exclude='*.md' '(password|client_secret|private_key)[[:space:]]*[:=][[:space:]]*[^[:space:]]+' .

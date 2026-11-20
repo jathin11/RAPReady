@@ -1,0 +1,40 @@
+@Metadata.layer: #CUSTOMER
+
+@UI.headerInfo: {
+  typeName: 'Scanned Object',
+  typeNamePlural: 'Scanned Objects',
+  title: { type: #STANDARD, value: 'ObjectName' },
+  description: { type: #STANDARD, value: 'ObjectType' }
+}
+
+annotate view ZC_RR_Object with
+{
+  @UI.hidden: true
+  AnalysisUUID;
+
+  @UI.hidden: true
+  ObjectUUID;
+
+  @UI.lineItem: [ { position: 10 } ]
+  Pgmid;
+
+  @UI.selectionField: [ { position: 10 } ]
+  @UI.lineItem: [ { position: 20, importance: #HIGH } ]
+  ObjectType;
+
+  @UI.selectionField: [ { position: 20 } ]
+  @UI.lineItem: [ { position: 30, importance: #HIGH } ]
+  ObjectName;
+
+  @UI.lineItem: [ { position: 40 } ]
+  PackageName;
+
+  @UI.lineItem: [ { position: 50 } ]
+  Transport;
+
+  @UI.lineItem: [ { position: 60 } ]
+  InTransport;
+
+  @UI.hidden: true
+  CreatedAt;
+}

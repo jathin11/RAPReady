@@ -1,0 +1,6 @@
+@EndUserText.label: 'RAPReady analysis owner access'
+@MappingRole: true
+define role ZR_RR_ANALYSIS {
+  grant select on ZR_RR_Analysis
+    where CreatedBy = $session.user;
+}

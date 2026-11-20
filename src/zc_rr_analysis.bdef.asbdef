@@ -1,0 +1,26 @@
+projection;
+strict ( 2 );
+
+define behavior for ZC_RR_Analysis alias Analysis
+use etag
+{
+  use create;
+  use update;
+  use delete;
+
+  use action Analyze;
+  use action Reset;
+
+  use association _Findings;
+  use association _Objects;
+}
+
+define behavior for ZC_RR_Finding alias Finding
+{
+  use association _Analysis;
+}
+
+define behavior for ZC_RR_Object alias ScannedObject
+{
+  use association _Analysis;
+}

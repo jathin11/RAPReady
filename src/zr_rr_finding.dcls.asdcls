@@ -1,0 +1,6 @@
+@EndUserText.label: 'RAPReady finding owner access'
+@MappingRole: true
+define role ZR_RR_FINDING {
+  grant select on ZR_RR_Finding
+    where _Analysis.CreatedBy = $session.user;
+}

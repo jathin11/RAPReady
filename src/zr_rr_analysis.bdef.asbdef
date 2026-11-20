@@ -1,0 +1,104 @@
+managed implementation in class zbp_r_rr_analysis unique;
+strict ( 2 );
+
+define behavior for ZR_RR_Analysis alias Analysis
+persistent table zrr_analysis
+lock master
+authorization master ( global )
+etag master LocalLastChangedAt
+{
+  create;
+  update;
+  delete;
+
+  action Analyze result [1] $self;
+  action Reset result [1] $self;
+
+  determination setInitialStatus on modify { create; }
+  validation validateScope on save { create; update; field ScopePackage; }
+
+  association _Findings { create; }
+  association _Objects { create; }
+
+  field ( readonly, numbering : managed ) AnalysisUUID;
+  field ( mandatory ) ScopePackage;
+  field ( readonly ) Status, StatusCriticality, ObjectCount, ErrorCount,
+                     WarningCount, InfoCount, Score, CreatedBy, CreatedAt,
+                     LastChangedBy, LastChangedAt, LocalLastChangedAt;
+
+  mapping for zrr_analysis
+  {
+    AnalysisUUID      = analysis_uuid;
+    ScopePackage      = scope_package;
+    TransportRequest  = transport_request;
+    Status            = status;
+    StatusCriticality = status_criticality;
+    ObjectCount       = object_count;
+    ErrorCount        = error_count;
+    WarningCount      = warning_count;
+    InfoCount         = info_count;
+    Score             = score;
+    CreatedBy         = created_by;
+    CreatedAt         = created_at;
+    LastChangedBy     = last_changed_by;
+    LastChangedAt     = last_changed_at;
+    LocalLastChangedAt = local_last_changed_at;
+  }
+}
+
+define behavior for ZR_RR_Finding alias Finding
+persistent table zrr_finding
+lock dependent by _Analysis
+authorization dependent by _Analysis
+{
+  delete;
+
+  association _Analysis;
+
+  field ( readonly ) AnalysisUUID, RuleId, Severity, SeverityCriticality,
+                     Title, Description, ObjectType, ObjectName,
+                     SuggestedAction, CreatedAt;
+  field ( readonly, numbering : managed ) FindingUUID;
+
+  mapping for zrr_finding
+  {
+    AnalysisUUID       = analysis_uuid;
+    FindingUUID        = finding_uuid;
+    RuleId             = rule_id;
+    Severity           = severity;
+    SeverityCriticality = severity_criticality;
+    Title              = title;
+    Description        = description;
+    ObjectType         = object_type;
+    ObjectName         = object_name;
+    SuggestedAction    = suggested_action;
+    CreatedAt          = created_at;
+  }
+}
+
+define behavior for ZR_RR_Object alias ScannedObject
+persistent table zrr_object
+lock dependent by _Analysis
+authorization dependent by _Analysis
+{
+  delete;
+
+  association _Analysis;
+
+  field ( readonly ) AnalysisUUID, Pgmid, ObjectType, ObjectName,
+                     PackageName, Transport, InTransport, CreatedAt;
+  field ( readonly, numbering : managed ) ObjectUUID;
+
+  mapping for zrr_object
+  {
+    AnalysisUUID = analysis_uuid;
+    ObjectUUID   = object_uuid;
+    Pgmid        = pgmid;
+    ObjectType   = object_type;
+    ObjectName   = object_name;
+    PackageName  = devclass;
+    Transport    = transport;
+    InTransport  = in_transport;
+    CreatedAt    = created_at;
+  }
+}

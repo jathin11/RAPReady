@@ -72,8 +72,7 @@ CLASS ltc_analyzer IMPLEMENTATION.
 
     cut->analyze(
       EXPORTING iv_package = 'ZRAPREADY'
-      IMPORTING et_objects = DATA(objects)
-                et_findings = findings ).
+      IMPORTING et_findings = findings ).
 
     cl_abap_unit_assert=>assert_equals( act = lines( findings ) exp = 1 ).
     cl_abap_unit_assert=>assert_false(

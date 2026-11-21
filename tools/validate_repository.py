@@ -76,7 +76,9 @@ def require_hardening_controls() -> None:
     behavior = (SRC / "zr_rr_analysis.bdef.asbdef").read_text(encoding="utf-8")
     if "authorization master ( global, instance )" not in behavior:
         fail("instance authorization is not enabled")
-    if "field ( features : instance ) ScopePackage, TransportRequest" not in behavior:
+    if "features : instance" not in behavior or not all(
+        field in behavior for field in ("ScopePackage", "TransportRequest")
+    ):
         fail("analysis inputs are not state protected")
 
     adapter = SRC / "adapter" / "zcl_rr_repo_onprem.clas.abap"

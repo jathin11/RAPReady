@@ -21,8 +21,8 @@ etag master LocalLastChangedAt
   association _Objects { create; }
 
   field ( readonly, numbering : managed ) AnalysisUUID;
-  field ( mandatory ) ScopePackage;
-  field ( features : instance ) ScopePackage, TransportRequest;
+  field ( mandatory, features : instance ) ScopePackage;
+  field ( features : instance ) TransportRequest;
   field ( readonly ) Status, StatusCriticality, ObjectCount, ErrorCount,
                      WarningCount, InfoCount, Score, CreatedBy, CreatedAt,
                      LastChangedBy, LastChangedAt, LocalLastChangedAt;

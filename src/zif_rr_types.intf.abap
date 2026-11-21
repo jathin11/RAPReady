@@ -2,6 +2,7 @@ INTERFACE zif_rr_types
   PUBLIC.
 
   CONSTANTS:
+    max_sync_objects TYPE i VALUE 1000,
     BEGIN OF severity,
       error   TYPE c LENGTH 10 VALUE 'ERROR',
       warning TYPE c LENGTH 10 VALUE 'WARNING',
@@ -22,6 +23,8 @@ INTERFACE zif_rr_types
       package_exists    TYPE abap_bool,
       transport_exists  TYPE abap_bool,
       transport_open    TYPE abap_bool,
+      object_total      TYPE i,
+      object_limit_exceeded TYPE abap_bool,
     END OF ty_context,
     BEGIN OF ty_object,
       pgmid        TYPE pgmid,
@@ -41,5 +44,13 @@ INTERFACE zif_rr_types
       object_name      TYPE sobj_name,
       suggested_action TYPE c LENGTH 255,
     END OF ty_finding,
-    tt_finding TYPE STANDARD TABLE OF ty_finding WITH EMPTY KEY.
+    tt_finding TYPE STANDARD TABLE OF ty_finding WITH EMPTY KEY,
+    BEGIN OF ty_summary,
+      status             TYPE c LENGTH 12,
+      status_criticality TYPE i,
+      error_count        TYPE i,
+      warning_count      TYPE i,
+      info_count         TYPE i,
+      score              TYPE i,
+    END OF ty_summary.
 ENDINTERFACE.

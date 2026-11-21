@@ -31,6 +31,7 @@ RAPReady makes those checks repeatable and visible to the whole delivery team. T
 | RR011 | The package contains an OData service binding | Warning |
 | RR012 | The package contains a DCL role | Warning |
 | RR013 | The package contains a test class by naming convention | Info |
+| RR014 | The package exceeds the 1000-object synchronous limit | Error |
 
 The rules are intentionally conservative. They identify structural release gaps; they do not claim that business logic, authorization design, performance, or the service contract is correct. ATC, ABAP Unit, integration tests, and import tests remain release gates.
 
@@ -68,7 +69,8 @@ See [Architecture](docs/architecture.md) and [Rule reference](docs/rules.md) for
 - ADT/Eclipse suitable for the target SAP release.
 - abapGit with support for DDLS, DDLX, BDEF, SRVD, and SRVB object types.
 - Developer authorization to create and activate objects in a customer package.
-- Authorization to read repository and transport metadata. The application also checks `S_DEVELOP` for UI operations.
+- Authorization to read repository and transport metadata.
+- A role containing authorization object `Z_RAPREADY`, restricted by package (`DEVCLASS`) and activity (`ACTVT`).
 
 Compatibility must be verified against the exact installed SAP_BASIS/S4CORE support package. The repository cannot run an ADT syntax check or publish a service binding without access to the target SAP system.
 
@@ -86,15 +88,16 @@ Detailed setup, troubleshooting, launchpad configuration, and uninstall guidance
 
 ## Activation order
 
-1. Package `ZRAPREADY` and tables `ZRR_ANALYSIS`, `ZRR_FINDING`, `ZRR_OBJECT`.
-2. Interfaces `ZIF_RR_TYPES`, `ZIF_RR_REPOSITORY`, `ZIF_RR_RULE`.
-3. Classes `ZCL_RR_REPO_ONPREM`, `ZCL_RR_RULE_BASELINE`, `ZCL_RR_ANALYZER`.
-4. Interface CDS entities `ZR_RR_ANALYSIS`, `ZR_RR_FINDING`, `ZR_RR_OBJECT` and DCL roles.
-5. Behavior definition `ZR_RR_ANALYSIS` and behavior pool `ZBP_R_RR_ANALYSIS`.
-6. Projection CDS entities and projection behavior `ZC_RR_ANALYSIS`.
-7. Metadata extensions.
-8. Service definition `ZUI_RR_ANALYSIS` and binding `ZUI_RR_ANALYSIS_O4`.
-9. Package-wide syntax/activation check, ABAP Unit, ATC, service publication, and preview.
+1. Root package, generated adapter subpackage, and tables `ZRR_ANALYSIS`, `ZRR_FINDING`, `ZRR_OBJECT`.
+2. Authorization class `ZRRP` and object `Z_RAPREADY`.
+3. Interfaces `ZIF_RR_TYPES`, `ZIF_RR_REPOSITORY`, `ZIF_RR_RULE`.
+4. Classes `ZCL_RR_REPO_ONPREM`, `ZCL_RR_RULE_BASELINE`, `ZCL_RR_ANALYZER`, `ZCL_RR_RESULT_CALCULATOR`.
+5. Interface CDS entities `ZR_RR_ANALYSIS`, `ZR_RR_FINDING`, `ZR_RR_OBJECT` and their DCL roles.
+6. Behavior definition `ZR_RR_ANALYSIS` and behavior pool `ZBP_R_RR_ANALYSIS`.
+7. Projection CDS entities, inherited projection DCL roles, and projection behavior `ZC_RR_ANALYSIS`.
+8. Metadata extensions.
+9. Service definition `ZUI_RR_ANALYSIS` and binding `ZUI_RR_ANALYSIS_O4`.
+10. Package-wide syntax/activation check, ABAP Unit, ATC, service publication, and preview.
 
 ## Object inventory
 
@@ -102,8 +105,9 @@ Detailed setup, troubleshooting, launchpad configuration, and uninstall guidance
 | --- | --- |
 | Persistence | `ZRR_ANALYSIS`, `ZRR_FINDING`, `ZRR_OBJECT` |
 | Domain contracts | `ZIF_RR_TYPES`, `ZIF_RR_REPOSITORY`, `ZIF_RR_RULE` |
-| Application services | `ZCL_RR_ANALYZER`, `ZCL_RR_RULE_BASELINE` |
-| Classic adapter | `ZCL_RR_REPO_ONPREM` |
+| Application services | `ZCL_RR_ANALYZER`, `ZCL_RR_RULE_BASELINE`, `ZCL_RR_RESULT_CALCULATOR` |
+| Classic adapter subpackage | `ZCL_RR_REPO_ONPREM` |
+| Authorization | `ZRRP`, `Z_RAPREADY` |
 | RAP interface | `ZR_RR_ANALYSIS`, `ZR_RR_FINDING`, `ZR_RR_OBJECT`, `ZR_RR_ANALYSIS` behavior |
 | RAP projection | `ZC_RR_ANALYSIS`, `ZC_RR_FINDING`, `ZC_RR_OBJECT`, projection behavior |
 | UI | Three CDS metadata extensions |
@@ -111,11 +115,12 @@ Detailed setup, troubleshooting, launchpad configuration, and uninstall guidance
 
 ## Security model
 
-- DCL limits analyses and child data to the creating user by default.
-- RAP global authorization checks require `S_DEVELOP`; display and change activities are checked separately.
+- Interface and transactional projection DCL limit analyses and child data to the creating user by default.
+- RAP global and instance authorization checks use `Z_RAPREADY`; instance checks evaluate the actual package.
+- Package and transport inputs become read-only after analysis. Use **Reset** before changing scope, which prevents a persisted result from describing a different scope.
 - The application reads repository and CTS metadata only. It never writes to `TADIR`, `TDEVC`, `E070`, or `E071`.
 - Service publication, launchpad catalogs, spaces/pages, business roles, and ICF/Gateway configuration are administrative steps and are not silently created by this repository.
-- For team-wide analyses, replace the owner-only DCL with a project/organization authorization design and add a dedicated authorization object before production use.
+- For team-wide analyses, replace the owner-only DCL with a governed project/organization predicate while retaining behavior authorization.
 
 ## Quality gates
 
@@ -128,7 +133,7 @@ Before promoting the package:
 5. Exercise create, update, delete, Analyze, Reset, owner isolation, paging, filtering, and OData error handling.
 6. Verify a representative package with no transport, a modifiable transport, a released transport, and a deliberately incomplete transport.
 
-The target is at least 80% meaningful ABAP Unit coverage of the rule and orchestration decisions. Coverage must be measured in the target system; this repository does not publish an unverified coverage badge.
+The target is at least 80% meaningful ABAP Unit coverage of the rule and orchestration decisions. Coverage must be measured in the target system; this repository does not publish an unverified coverage badge. Record all evidence in the [production-readiness gate](docs/production-readiness.md).
 
 ## Extending RAPReady
 
@@ -147,6 +152,7 @@ Good next rules include dependency-graph traversal, released-API checks, inactiv
 - The baseline rule identifies test classes by naming convention because test includes are not represented as independent TADIR objects.
 - ATC and ABAP Unit execution are not invoked by the RAP LUW. They belong in CI/CD or an application-job integration.
 - The adapter uses classic SAP repository/CTS tables and therefore is not ABAP Cloud Tier 1.
+- Interactive scans are limited to 1000 objects. A larger package receives blocking finding `RR014`; no partial snapshot can be READY.
 - Service binding publication and launchpad content must be completed in the target system.
 
 ## Roadmap

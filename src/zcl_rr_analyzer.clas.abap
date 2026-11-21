@@ -40,12 +40,19 @@ CLASS zcl_rr_analyzer IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD analyze.
+    CLEAR: et_objects, et_findings.
+
+    DATA(object_total) = repository->count_objects( iv_package ).
+
     DATA(context) = VALUE zif_rr_types=>ty_context(
       package           = iv_package
       transport_request = iv_transport
       package_exists    = repository->package_exists( iv_package )
       transport_exists  = repository->transport_exists( iv_transport )
-      transport_open    = repository->transport_is_modifiable( iv_transport ) ).
+      transport_open    = repository->transport_is_modifiable( iv_transport )
+      object_total      = object_total
+      object_limit_exceeded = xsdbool(
+        object_total > zif_rr_types=>max_sync_objects ) ).
 
     et_objects = repository->get_objects(
       iv_package   = iv_package

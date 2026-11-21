@@ -21,6 +21,7 @@ Severity maps to Fiori criticality as follows: Error = 1, Warning = 2, Info = 3.
 | RR011 | No SRVB exists | Add or transport the OData service binding. |
 | RR012 | No DCLS exists | Review read authorization and add DCL when required. |
 | RR013 | No repository class name contains `TEST` or `LTC` | Add discoverable ABAP Unit coverage and enforce it in CI. |
+| RR014 | The package contains more than 1000 active TADIR objects | Reduce the scope or use a chunked background-job extension; the partial synchronous inventory is blocked. |
 
 ## Adding a rule
 

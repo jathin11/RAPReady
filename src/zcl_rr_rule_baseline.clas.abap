@@ -72,6 +72,18 @@ CLASS zcl_rr_rule_baseline IMPLEMENTATION.
           ct_findings         = rt_findings ).
     ENDIF.
 
+    IF is_context-object_limit_exceeded = abap_true.
+      add_finding(
+        EXPORTING
+          iv_rule_id          = 'RR014'
+          iv_severity         = zif_rr_types=>severity-error
+          iv_title            = 'Package exceeds the synchronous scan limit'
+          iv_description      = 'The package contains more than 1000 objects; the persisted snapshot is intentionally incomplete.'
+          iv_suggested_action = 'Analyze a smaller package scope or implement the documented background-job extension.'
+        CHANGING
+          ct_findings         = rt_findings ).
+    ENDIF.
+
     IF is_context-transport_request IS NOT INITIAL.
       IF is_context-transport_exists = abap_false.
         add_finding(
@@ -83,32 +95,34 @@ CLASS zcl_rr_rule_baseline IMPLEMENTATION.
             iv_suggested_action = 'Correct the transport number or clear it for a package-only analysis.'
           CHANGING
             ct_findings         = rt_findings ).
-      ELSEIF is_context-transport_open = abap_false.
-        add_finding(
-          EXPORTING
-            iv_rule_id          = 'RR006'
-            iv_severity         = zif_rr_types=>severity-warning
-            iv_title            = 'Transport is not modifiable'
-            iv_description      = 'The selected request is no longer in a modifiable or protected state.'
-            iv_suggested_action = 'Use a modifiable request for corrections or treat this run as an audit.'
-          CHANGING
-            ct_findings         = rt_findings ).
-      ENDIF.
+      ELSE.
+        IF is_context-transport_open = abap_false.
+          add_finding(
+            EXPORTING
+              iv_rule_id          = 'RR006'
+              iv_severity         = zif_rr_types=>severity-warning
+              iv_title            = 'Transport is not modifiable'
+              iv_description      = 'The selected request is no longer in a modifiable or protected state.'
+              iv_suggested_action = 'Use a modifiable request for corrections or treat this run as an audit.'
+            CHANGING
+              ct_findings         = rt_findings ).
+        ENDIF.
 
-      LOOP AT it_objects ASSIGNING FIELD-SYMBOL(<object>)
-           WHERE in_transport = abap_false.
-        add_finding(
-          EXPORTING
-            iv_rule_id          = 'RR007'
-            iv_severity         = zif_rr_types=>severity-error
-            iv_title            = 'Object is missing from the transport'
-            iv_description      = 'The package object is not represented in the selected request or its tasks.'
-            iv_object_type      = <object>-object_type
-            iv_object_name      = <object>-object_name
-            iv_suggested_action = 'Add the object through the normal transport organizer workflow.'
-          CHANGING
-            ct_findings         = rt_findings ).
-      ENDLOOP.
+        LOOP AT it_objects ASSIGNING FIELD-SYMBOL(<object>)
+             WHERE in_transport = abap_false.
+          add_finding(
+            EXPORTING
+              iv_rule_id          = 'RR007'
+              iv_severity         = zif_rr_types=>severity-error
+              iv_title            = 'Object is missing from the transport'
+              iv_description      = 'The package object is not represented in the selected request or its tasks.'
+              iv_object_type      = <object>-object_type
+              iv_object_name      = <object>-object_name
+              iv_suggested_action = 'Add the object through the normal transport organizer workflow.'
+            CHANGING
+              ct_findings         = rt_findings ).
+        ENDLOOP.
+      ENDIF.
     ENDIF.
 
     IF NOT line_exists( it_objects[ object_type = 'DDLS' ] ).

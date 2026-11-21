@@ -8,9 +8,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: repository-checks-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   repository-shape:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - name: Check required project files
@@ -20,6 +25,9 @@ jobs:
           test -f LICENSE
           test -f README.md
           test -f src/package.devc.xml
+      - name: Validate abapGit serialization and hardening controls
+        shell: bash
+        run: python3 tools/validate_repository.py
       - name: Reject accidental secrets
         shell: bash
         run: |

@@ -1,0 +1,6 @@
+@EndUserText.label: 'RAPReady finding projection access'
+@MappingRole: true
+define role ZC_RR_FINDING {
+  grant select on ZC_RR_Finding
+    where inheriting conditions from entity ZR_RR_Finding;
+}

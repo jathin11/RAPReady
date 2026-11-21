@@ -13,6 +13,12 @@ use etag
 
   use association _Findings;
   use association _Objects;
+
+  side effects
+  {
+    action Analyze affects $self, entity _Findings, entity _Objects;
+    action Reset affects $self, entity _Findings, entity _Objects;
+  }
 }
 
 define behavior for ZC_RR_Finding alias Finding

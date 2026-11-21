@@ -15,7 +15,9 @@
 2. Run ABAP Unit on `ZCL_RR_RULE_BASELINE` and `ZCL_RR_ANALYZER`.
 3. Run the project ATC variants.
 4. Confirm that DCL owner isolation works with two test users.
-5. Confirm `S_DEVELOP` display/change behavior with representative developer roles.
+5. Create a PFCG role for `Z_RAPREADY` and restrict `DEVCLASS` to the packages each user may analyze.
+6. Test activities 01 (create), 02 (change/reset), 06 (delete), and 16 (Analyze) with positive and negative users.
+7. Confirm owner isolation through both interface and projection DCL with two test users.
 
 ## Publish and preview
 
@@ -45,7 +47,9 @@ Create target mapping and tile content according to the launchpad technology use
 | --- | --- |
 | Service preview is unavailable | Confirm the binding is published and Gateway/ICF prerequisites are active. |
 | No analyses appear | Confirm DCL owner isolation and the logon-user mapping. |
-| Analyze is denied | Check `S_DEVELOP` change activity and behavior authorization. |
+| Analyze is denied | Check `Z_RAPREADY`, activity 16, and the requested `DEVCLASS` value. |
+| Scope fields are read-only | Reset the analysis before changing package or transport. |
+| RR014 is reported | Reduce the package scope or implement the documented background-job extension. |
 | Transport is reported missing | Use the request/task number exactly as stored in E070/E071. |
 | Objects are missing from inventory | Check TADIR package assignment and deletion flag. |
 | Import cannot deserialize an object type | Upgrade abapGit to a version supporting the RAP serializers used here. |

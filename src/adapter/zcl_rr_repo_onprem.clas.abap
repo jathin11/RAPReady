@@ -56,11 +56,14 @@ CLASS zcl_rr_repo_onprem IMPLEMENTATION.
       tt_transport_key TYPE HASHED TABLE OF ty_transport_key
         WITH UNIQUE KEY pgmid object obj_name.
 
+    DATA(max_objects) = zif_rr_types=>max_sync_objects.
+
     SELECT pgmid, object, obj_name, devclass
       FROM tadir
       WHERE devclass = @iv_package
         AND delflag = @space
-      INTO TABLE @DATA(lt_repository_objects).
+      INTO TABLE @DATA(lt_repository_objects)
+      UP TO @max_objects ROWS.
 
     DATA lt_transport_keys TYPE tt_transport_key.
 
@@ -95,5 +98,13 @@ CLASS zcl_rr_repo_onprem IMPLEMENTATION.
            transport    = ls_transport-trkorr
            in_transport = xsdbool( iv_transport IS INITIAL
                                    OR ls_transport-trkorr IS NOT INITIAL ) ) ).
+  ENDMETHOD.
+
+  METHOD zif_rr_repository~count_objects.
+    SELECT COUNT( * )
+      FROM tadir
+      WHERE devclass = @iv_package
+        AND delflag = @space
+      INTO @rv_count.
   ENDMETHOD.
 ENDCLASS.

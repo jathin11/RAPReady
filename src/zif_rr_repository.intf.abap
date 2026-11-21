@@ -18,4 +18,8 @@ INTERFACE zif_rr_repository
       iv_package   TYPE devclass
       iv_transport TYPE trkorr OPTIONAL
     RETURNING VALUE(rt_objects) TYPE zif_rr_types=>tt_object.
+
+  METHODS count_objects
+    IMPORTING iv_package TYPE devclass
+    RETURNING VALUE(rv_count) TYPE i.
 ENDINTERFACE.

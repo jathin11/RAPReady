@@ -11,6 +11,7 @@ CLASS ltc_baseline_rule DEFINITION FINAL
     METHODS flags_local_package FOR TESTING.
     METHODS flags_missing_transport FOR TESTING.
     METHODS accepts_complete_scope FOR TESTING.
+    METHODS blocks_truncated_scope FOR TESTING.
 ENDCLASS.
 
 CLASS ltc_baseline_rule IMPLEMENTATION.
@@ -46,7 +47,7 @@ CLASS ltc_baseline_rule IMPLEMENTATION.
 
     cl_abap_unit_assert=>assert_true(
       act = xsdbool( line_exists( findings[ rule_id = 'RR005' ] ) ) ).
-    cl_abap_unit_assert=>assert_true(
+    cl_abap_unit_assert=>assert_false(
       act = xsdbool( line_exists( findings[ rule_id = 'RR007' ] ) ) ).
   ENDMETHOD.
 
@@ -68,5 +69,17 @@ CLASS ltc_baseline_rule IMPLEMENTATION.
       it_objects = objects ).
 
     cl_abap_unit_assert=>assert_initial( findings ).
+  ENDMETHOD.
+
+  METHOD blocks_truncated_scope.
+    DATA(findings) = cut->evaluate(
+      is_context = VALUE #( package = 'ZRAPREADY'
+                            package_exists = abap_true
+                            object_total = 1001
+                            object_limit_exceeded = abap_true )
+      it_objects = VALUE #( ( object_type = 'DDLS' object_name = 'ZR_TEST' ) ) ).
+
+    cl_abap_unit_assert=>assert_true(
+      act = xsdbool( line_exists( findings[ rule_id = 'RR014' ] ) ) ).
   ENDMETHOD.
 ENDCLASS.

@@ -27,7 +27,7 @@ flowchart LR
     REPO --> TYPES
 ```
 
-`ZCL_RR_REPO_ONPREM` is the only delivered class allowed to select from `TADIR`, `TDEVC`, `E070`, and `E071`. This is a governed Tier-2 boundary. A future released-API or remote adapter can implement the same interface.
+`ZCL_RR_REPO_ONPREM` is the only delivered class allowed to select from `TADIR`, `TDEVC`, `E070`, and `E071`. It is physically isolated in the adapter subpackage generated from `src/adapter`. This is a governed Tier-2 boundary. A future released-API or remote adapter can implement the same interface.
 
 ## Transaction and concurrency
 
@@ -35,14 +35,15 @@ flowchart LR
 - Root updates use `LOCAL_LAST_CHANGED_AT` as ETag.
 - Analyze replaces the existing child snapshot inside the current RAP transaction.
 - Analyze is disabled while status is `RUNNING`.
+- Scope package and transport are read-only after analysis until Reset returns the record to `NEW`.
 - Failures are reported through RAP messages; no partial result is committed by the application.
 
 ## Authorization
 
-CDS DCL applies owner isolation to the root and both directly queryable child entities. RAP global authorization checks `S_DEVELOP` for display or change activity. This baseline is appropriate for a developer tool but is not a substitute for a project-specific authorization concept.
+CDS DCL applies owner isolation to the root and both directly queryable child entities. Each transactional projection has an explicit DCL that inherits its interface-entity conditions. RAP global authorization uses `Z_RAPREADY` for operation-level checks, and instance authorization checks the actual `DEVCLASS` for change, delete, Analyze, and Reset.
 
-For a shared team deployment, introduce a dedicated authorization object with at least analysis scope, package pattern, display, execute, and administration activities. Update both DCL and behavior authorization together.
+For a shared team deployment, replace owner isolation with a governed team predicate only after designing the read-access model. Update both interface/projection DCL and behavior authorization together.
 
 ## Performance
 
-The adapter uses set-based selects for the package object list and selected transport entries, then performs hashed-table membership checks in ABAP. Child table keys start with client and analysis UUID, making composition navigation selective. Very large packages should be tested with realistic volumes; a future version can add an object cap and application-job execution.
+The adapter uses set-based selects for the package object list and selected transport entries, then performs hashed-table membership checks in ABAP. Child table keys start with client and analysis UUID, making composition navigation selective. Interactive scans persist at most 1000 objects; the separate count detects a larger scope and produces blocking finding `RR014`. Larger scopes require chunked application-job execution.

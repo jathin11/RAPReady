@@ -4,15 +4,15 @@ strict ( 2 );
 define behavior for ZR_RR_Analysis alias Analysis
 persistent table zrr_analysis
 lock master
-authorization master ( global )
+authorization master ( global, instance )
 etag master LocalLastChangedAt
 {
   create;
   update;
   delete;
 
-  action Analyze result [1] $self;
-  action Reset result [1] $self;
+  action ( features : instance ) Analyze result [1] $self;
+  action ( features : instance ) Reset result [1] $self;
 
   determination setInitialStatus on modify { create; }
   validation validateScope on save { create; update; field ScopePackage; }
@@ -22,6 +22,7 @@ etag master LocalLastChangedAt
 
   field ( readonly, numbering : managed ) AnalysisUUID;
   field ( mandatory ) ScopePackage;
+  field ( features : instance ) ScopePackage, TransportRequest;
   field ( readonly ) Status, StatusCriticality, ObjectCount, ErrorCount,
                      WarningCount, InfoCount, Score, CreatedBy, CreatedAt,
                      LastChangedBy, LastChangedAt, LocalLastChangedAt;

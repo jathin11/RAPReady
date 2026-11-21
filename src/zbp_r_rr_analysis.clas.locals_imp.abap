@@ -4,6 +4,14 @@ CLASS lhc_analysis DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING REQUEST requested_authorizations FOR Analysis
       RESULT result.
 
+    METHODS get_instance_authorizations FOR INSTANCE AUTHORIZATION
+      IMPORTING keys REQUEST requested_authorizations FOR Analysis
+      RESULT result.
+
+    METHODS get_instance_features FOR INSTANCE FEATURES
+      IMPORTING keys REQUEST requested_features FOR Analysis
+      RESULT result.
+
     METHODS setInitialStatus FOR DETERMINE ON MODIFY
       IMPORTING keys FOR Analysis~setInitialStatus.
 
@@ -19,22 +27,102 @@ ENDCLASS.
 
 CLASS lhc_analysis IMPLEMENTATION.
   METHOD get_global_authorizations.
-    AUTHORITY-CHECK OBJECT 'S_DEVELOP'
+    AUTHORITY-CHECK OBJECT 'Z_RAPREADY'
+      ID 'ACTVT' FIELD '01'
+      ID 'DEVCLASS' DUMMY.
+    result-%create = COND #( WHEN sy-subrc = 0
+                             THEN if_abap_behv=>auth-allowed
+                             ELSE if_abap_behv=>auth-unauthorized ).
+
+    AUTHORITY-CHECK OBJECT 'Z_RAPREADY'
       ID 'ACTVT' FIELD '02'
-      ID 'DEVCLASS' DUMMY
-      ID 'OBJTYPE' DUMMY
-      ID 'OBJNAME' DUMMY
-      ID 'P_GROUP' DUMMY.
+      ID 'DEVCLASS' DUMMY.
+    DATA(change_permission) = COND #( WHEN sy-subrc = 0
+                                      THEN if_abap_behv=>auth-allowed
+                                      ELSE if_abap_behv=>auth-unauthorized ).
+    result-%update = change_permission.
+    result-%action-Reset = change_permission.
 
-    DATA(permission) = COND #( WHEN sy-subrc = 0
-                               THEN if_abap_behv=>auth-allowed
-                               ELSE if_abap_behv=>auth-unauthorized ).
+    AUTHORITY-CHECK OBJECT 'Z_RAPREADY'
+      ID 'ACTVT' FIELD '06'
+      ID 'DEVCLASS' DUMMY.
+    result-%delete = COND #( WHEN sy-subrc = 0
+                             THEN if_abap_behv=>auth-allowed
+                             ELSE if_abap_behv=>auth-unauthorized ).
 
-    result-%create = permission.
-    result-%update = permission.
-    result-%delete = permission.
-    result-%action-Analyze = permission.
-    result-%action-Reset = permission.
+    AUTHORITY-CHECK OBJECT 'Z_RAPREADY'
+      ID 'ACTVT' FIELD '16'
+      ID 'DEVCLASS' DUMMY.
+    result-%action-Analyze = COND #( WHEN sy-subrc = 0
+                                     THEN if_abap_behv=>auth-allowed
+                                     ELSE if_abap_behv=>auth-unauthorized ).
+  ENDMETHOD.
+
+  METHOD get_instance_authorizations.
+    READ ENTITIES OF zr_rr_analysis IN LOCAL MODE
+      ENTITY Analysis
+      FIELDS ( ScopePackage )
+      WITH CORRESPONDING #( keys )
+      RESULT DATA(analyses).
+
+    LOOP AT analyses ASSIGNING FIELD-SYMBOL(<analysis>).
+      AUTHORITY-CHECK OBJECT 'Z_RAPREADY'
+        ID 'ACTVT' FIELD '02'
+        ID 'DEVCLASS' FIELD <analysis>-ScopePackage.
+      DATA(change_permission) = COND #( WHEN sy-subrc = 0
+                                        THEN if_abap_behv=>auth-allowed
+                                        ELSE if_abap_behv=>auth-unauthorized ).
+
+      AUTHORITY-CHECK OBJECT 'Z_RAPREADY'
+        ID 'ACTVT' FIELD '06'
+        ID 'DEVCLASS' FIELD <analysis>-ScopePackage.
+      DATA(delete_permission) = COND #( WHEN sy-subrc = 0
+                                        THEN if_abap_behv=>auth-allowed
+                                        ELSE if_abap_behv=>auth-unauthorized ).
+
+      AUTHORITY-CHECK OBJECT 'Z_RAPREADY'
+        ID 'ACTVT' FIELD '16'
+        ID 'DEVCLASS' FIELD <analysis>-ScopePackage.
+      DATA(execute_permission) = COND #( WHEN sy-subrc = 0
+                                         THEN if_abap_behv=>auth-allowed
+                                         ELSE if_abap_behv=>auth-unauthorized ).
+
+      APPEND VALUE #(
+        %tky = <analysis>-%tky
+        %update = change_permission
+        %delete = delete_permission
+        %action-Analyze = execute_permission
+        %action-Reset = change_permission ) TO result.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD get_instance_features.
+    READ ENTITIES OF zr_rr_analysis IN LOCAL MODE
+      ENTITY Analysis
+      FIELDS ( ScopePackage Status )
+      WITH CORRESPONDING #( keys )
+      RESULT DATA(analyses).
+
+    result = VALUE #(
+      FOR analysis IN analyses
+      ( %tky = analysis-%tky
+        %field-ScopePackage = COND #(
+          WHEN analysis-Status = zif_rr_types=>status-new
+            THEN if_abap_behv=>fc-f-unrestricted
+          ELSE if_abap_behv=>fc-f-read_only )
+        %field-TransportRequest = COND #(
+          WHEN analysis-Status = zif_rr_types=>status-new
+            THEN if_abap_behv=>fc-f-unrestricted
+          ELSE if_abap_behv=>fc-f-read_only )
+        %action-Analyze = COND #(
+          WHEN analysis-ScopePackage IS INITIAL
+            OR analysis-Status = zif_rr_types=>status-running
+            THEN if_abap_behv=>fc-o-disabled
+          ELSE if_abap_behv=>fc-o-enabled )
+        %action-Reset = COND #(
+          WHEN analysis-Status = zif_rr_types=>status-new
+            THEN if_abap_behv=>fc-o-disabled
+          ELSE if_abap_behv=>fc-o-enabled ) ) ).
   ENDMETHOD.
 
   METHOD setInitialStatus.
@@ -55,10 +143,14 @@ CLASS lhc_analysis IMPLEMENTATION.
       REPORTED DATA(reported_update).
 
     IF failed_update IS NOT INITIAL.
-      APPEND VALUE #( %msg = new_message_with_text(
-                        severity = if_abap_behv_message=>severity-error
-                        text = 'The initial analysis state could not be set.' ) )
-             TO reported-analysis.
+      LOOP AT keys ASSIGNING FIELD-SYMBOL(<key>).
+        APPEND VALUE #(
+          %tky = <key>-%tky
+          %msg = new_message_with_text(
+            severity = if_abap_behv_message=>severity-error
+            text = 'The initial analysis state could not be set.' ) )
+          TO reported-analysis.
+      ENDLOOP.
     ENDIF.
   ENDMETHOD.
 
@@ -78,6 +170,23 @@ CLASS lhc_analysis IMPLEMENTATION.
         %msg = new_message_with_text(
           severity = if_abap_behv_message=>severity-error
           text = 'Scope package is required.' ) ) TO reported-analysis.
+    ENDLOOP.
+
+    LOOP AT analyses ASSIGNING <analysis>
+         WHERE ScopePackage IS NOT INITIAL.
+      AUTHORITY-CHECK OBJECT 'Z_RAPREADY'
+        ID 'ACTVT' FIELD '16'
+        ID 'DEVCLASS' FIELD <analysis>-ScopePackage.
+      IF sy-subrc <> 0.
+        APPEND VALUE #( %tky = <analysis>-%tky ) TO failed-analysis.
+        APPEND VALUE #(
+          %tky = <analysis>-%tky
+          %element-ScopePackage = if_abap_behv=>mk-on
+          %msg = new_message_with_text(
+            severity = if_abap_behv_message=>severity-error
+            text = 'You are not authorized to analyze this package.' ) )
+          TO reported-analysis.
+      ENDIF.
     ENDLOOP.
   ENDMETHOD.
 
@@ -129,27 +238,13 @@ CLASS lhc_analysis IMPLEMENTATION.
         FROM VALUE #( ( %tky = <analysis>-%tky ) )
         RESULT DATA(existing_objects).
 
+      GET TIME STAMP FIELD timestamp.
+
       MODIFY ENTITIES OF zr_rr_analysis IN LOCAL MODE
         ENTITY Finding DELETE FROM VALUE #(
           FOR finding IN existing_findings ( %tky = finding-%tky ) )
         ENTITY ScannedObject DELETE FROM VALUE #(
           FOR object IN existing_objects ( %tky = object-%tky ) )
-        FAILED DATA(failed_delete)
-        REPORTED DATA(reported_delete).
-
-      IF failed_delete IS NOT INITIAL.
-        APPEND VALUE #( %tky = <analysis>-%tky ) TO failed-analysis.
-        APPEND VALUE #( %tky = <analysis>-%tky
-                        %msg = new_message_with_text(
-                          severity = if_abap_behv_message=>severity-error
-                          text = 'The previous analysis snapshot could not be replaced.' ) )
-               TO reported-analysis.
-        CONTINUE.
-      ENDIF.
-
-      GET TIME STAMP FIELD timestamp.
-
-      MODIFY ENTITIES OF zr_rr_analysis IN LOCAL MODE
         ENTITY Analysis CREATE BY \_Findings
         FIELDS ( RuleId Severity SeverityCriticality Title Description
                  ObjectType ObjectName SuggestedAction CreatedAt )
@@ -183,59 +278,33 @@ CLASS lhc_analysis IMPLEMENTATION.
                 Transport = object-transport
                 InTransport = object-in_transport
                 CreatedAt = timestamp ) ) ) )
-        FAILED DATA(failed_create)
-        REPORTED DATA(reported_create).
+        FAILED DATA(failed_snapshot)
+        REPORTED DATA(reported_snapshot).
 
-      IF failed_create IS NOT INITIAL.
+      IF failed_snapshot IS NOT INITIAL.
         APPEND VALUE #( %tky = <analysis>-%tky ) TO failed-analysis.
         APPEND VALUE #( %tky = <analysis>-%tky
                         %msg = new_message_with_text(
                           severity = if_abap_behv_message=>severity-error
-                          text = 'The analysis result could not be persisted.' ) )
+                          text = 'The analysis snapshot could not be replaced.' ) )
                TO reported-analysis.
         CONTINUE.
       ENDIF.
 
-      DATA(error_count) = REDUCE i(
-        INIT count = 0
-        FOR finding IN findings
-        WHERE ( severity = zif_rr_types=>severity-error )
-        NEXT count = count + 1 ).
-      DATA(warning_count) = REDUCE i(
-        INIT count = 0
-        FOR finding IN findings
-        WHERE ( severity = zif_rr_types=>severity-warning )
-        NEXT count = count + 1 ).
-      DATA(info_count) = REDUCE i(
-        INIT count = 0
-        FOR finding IN findings
-        WHERE ( severity = zif_rr_types=>severity-info )
-        NEXT count = count + 1 ).
-
-      DATA(score) = 100 - ( error_count * 20 ) - ( warning_count * 5 ).
-      IF score < 0.
-        score = 0.
-      ENDIF.
-
-      DATA(status) = COND #( WHEN error_count > 0 THEN zif_rr_types=>status-blocked
-                             WHEN warning_count > 0 THEN zif_rr_types=>status-review
-                             ELSE zif_rr_types=>status-ready ).
-      DATA(criticality) = COND i( WHEN error_count > 0 THEN 1
-                                  WHEN warning_count > 0 THEN 2
-                                  ELSE 3 ).
+      DATA(summary) = zcl_rr_result_calculator=>calculate( findings ).
 
       MODIFY ENTITIES OF zr_rr_analysis IN LOCAL MODE
         ENTITY Analysis
         UPDATE FIELDS ( Status StatusCriticality ObjectCount ErrorCount
                         WarningCount InfoCount Score )
         WITH VALUE #( ( %tky = <analysis>-%tky
-                        Status = status
-                        StatusCriticality = criticality
+                        Status = summary-status
+                        StatusCriticality = summary-status_criticality
                         ObjectCount = lines( objects )
-                        ErrorCount = error_count
-                        WarningCount = warning_count
-                        InfoCount = info_count
-                        Score = score ) )
+                        ErrorCount = summary-error_count
+                        WarningCount = summary-warning_count
+                        InfoCount = summary-info_count
+                        Score = summary-score ) )
         FAILED DATA(failed_summary)
         REPORTED DATA(reported_summary).
 

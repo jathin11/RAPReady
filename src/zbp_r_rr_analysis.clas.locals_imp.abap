@@ -108,7 +108,7 @@ CLASS lhc_analysis IMPLEMENTATION.
       ( %tky = analysis-%tky
         %field-ScopePackage = COND #(
           WHEN analysis-Status = zif_rr_types=>status-new
-            THEN if_abap_behv=>fc-f-unrestricted
+            THEN if_abap_behv=>fc-f-mandatory
           ELSE if_abap_behv=>fc-f-read_only )
         %field-TransportRequest = COND #(
           WHEN analysis-Status = zif_rr_types=>status-new
